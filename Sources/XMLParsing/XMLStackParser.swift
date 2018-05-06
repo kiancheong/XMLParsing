@@ -79,7 +79,7 @@ internal class _XMLElement {
         self.init(key: key, value: nil, attributes: attributes.mapValues({ $0.description }), children: children)
     }
     
-    static func createRootElement(_ container: XMLContainer, rootKey: String) -> _XMLElement? {
+    static func createRootElement(_ container: XMLEncodingContainer, rootKey: String) -> _XMLElement? {
         let element = _XMLElement(key: rootKey)
         
         switch container {
@@ -94,7 +94,10 @@ internal class _XMLElement {
         return element
     }
     
-    fileprivate static func modifyElement(element: _XMLElement, parentElement: _XMLElement?, key: String?, dictionary: MutableXMLContainerDictionary) {
+    fileprivate static func modifyElement(element: _XMLElement,
+                                          parentElement: _XMLElement?,
+                                          key: String?,
+                                          dictionary: MutableDictionaryContainer<XMLEncodingContainer>) {
         let attributes = dictionary.values[_XMLElement.attributesKey] ?? .null
         switch attributes {
         case .dictionary(let attributesDictionary):
@@ -116,7 +119,7 @@ internal class _XMLElement {
         }
     }
     
-    fileprivate static func createElement(_ container: XMLContainer, parent parentElement: _XMLElement, key: String) {
+    fileprivate static func createElement(_ container: XMLEncodingContainer, parent parentElement: _XMLElement, key: String) {
         switch container {
         case .null:
             let element = _XMLElement(key: key)
@@ -179,22 +182,22 @@ internal class _XMLElement {
         }
     }
     
-    func flatten() -> [String: Any] {
-        var node: [String: Any] = attributes
+    func flatten() -> XMLDecodingContainer {
+        let node = MutableDictionaryContainer(attributes.mapValues { XMLDecodingContainer.string($0) })
         
         for childElement in children {
             for child in childElement.value {
                 if let content = child.value {
-                    node[childElement.key] = content
+                    node[childElement.key] = .string(content)
                 } else if !child.children.isEmpty || !child.attributes.isEmpty {
                     let newValue = child.flatten()
                     
                     if let existingValue = node[childElement.key] {
-                        if var array = existingValue as? Array<Any> {
+                        switch existingValue {
+                        case .array(let array):
                             array.append(newValue)
-                            node[childElement.key] = array
-                        } else {
-                            node[childElement.key] = [existingValue, newValue]
+                        default:
+                            node[childElement.key] = .array(MutableArrayContainer([existingValue, newValue]))
                         }
                     } else {
                         node[childElement.key] = newValue
@@ -203,7 +206,7 @@ internal class _XMLElement {
             }
         }
         
-        return node
+        return .dictionary(node)
     }
     
     func toXMLString(with header: XMLHeader? = nil, withCDATA cdata: Bool, ignoreEscaping: Bool = false) -> String {
@@ -270,7 +273,7 @@ internal class _XMLStackParser: NSObject, XMLParserDelegate {
     var currentElementName: String?
     var currentElementData = ""
     
-    static func parse(with data: Data) throws -> [String: Any] {
+    static func parse(with data: Data) throws -> XMLDecodingContainer {
         let parser = _XMLStackParser()
         
         do {

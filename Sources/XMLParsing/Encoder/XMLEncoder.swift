@@ -303,7 +303,7 @@ internal class _XMLEncoder: Encoder {
     // MARK: - Encoder Methods
     public func container<Key>(keyedBy: Key.Type) -> KeyedEncodingContainer<Key> {
         // If an existing keyed container was already requested, return that one.
-        let topContainer: MutableXMLContainerDictionary
+        let topContainer: MutableDictionaryContainer<XMLEncodingContainer>
         if self.canEncodeNewValue {
             // We haven't yet pushed a container at this level; do so here.
             topContainer = self.storage.pushKeyedContainer()
@@ -322,7 +322,7 @@ internal class _XMLEncoder: Encoder {
     
     public func unkeyedContainer() -> UnkeyedEncodingContainer {
         // If an existing unkeyed container was already requested, return that one.
-        let topContainer: MutableXMLContainerArray
+        let topContainer: MutableArrayContainer<XMLEncodingContainer>
         if self.canEncodeNewValue {
             // We haven't yet pushed a container at this level; do so here.
             topContainer = self.storage.pushUnkeyedContainer()
@@ -435,20 +435,20 @@ extension _XMLEncoder: SingleValueEncodingContainer {
 
 extension _XMLEncoder {
     /// Returns the given value boxed in a container appropriate for pushing onto the container stack.
-    func box(_ value: Bool)   -> XMLContainer { return .bool(value) }
-    func box(_ value: Int)    -> XMLContainer { return .int(value) }
-    func box(_ value: Int8)   -> XMLContainer { return .int8(value) }
-    func box(_ value: Int16)  -> XMLContainer { return .int16(value) }
-    func box(_ value: Int32)  -> XMLContainer { return .int32(value) }
-    func box(_ value: Int64)  -> XMLContainer { return .int64(value) }
-    func box(_ value: UInt)   -> XMLContainer { return .uint(value) }
-    func box(_ value: UInt8)  -> XMLContainer { return .uint8(value) }
-    func box(_ value: UInt16) -> XMLContainer { return .uint16(value) }
-    func box(_ value: UInt32) -> XMLContainer { return .uint32(value) }
-    func box(_ value: UInt64) -> XMLContainer { return .uint64(value) }
-    func box(_ value: String) -> XMLContainer { return .string(value) }
+    func box(_ value: Bool)   -> XMLEncodingContainer { return .bool(value) }
+    func box(_ value: Int)    -> XMLEncodingContainer { return .int(value) }
+    func box(_ value: Int8)   -> XMLEncodingContainer { return .int8(value) }
+    func box(_ value: Int16)  -> XMLEncodingContainer { return .int16(value) }
+    func box(_ value: Int32)  -> XMLEncodingContainer { return .int32(value) }
+    func box(_ value: Int64)  -> XMLEncodingContainer { return .int64(value) }
+    func box(_ value: UInt)   -> XMLEncodingContainer { return .uint(value) }
+    func box(_ value: UInt8)  -> XMLEncodingContainer { return .uint8(value) }
+    func box(_ value: UInt16) -> XMLEncodingContainer { return .uint16(value) }
+    func box(_ value: UInt32) -> XMLEncodingContainer { return .uint32(value) }
+    func box(_ value: UInt64) -> XMLEncodingContainer { return .uint64(value) }
+    func box(_ value: String) -> XMLEncodingContainer { return .string(value) }
     
-    func box(_ value: Float) throws -> XMLContainer {
+    func box(_ value: Float) throws -> XMLEncodingContainer {
         if value.isInfinite || value.isNaN {
             guard case let .convertToString(positiveInfinity: posInfString, negativeInfinity: negInfString, nan: nanString) = self.options.nonConformingFloatEncodingStrategy else {
                 throw EncodingError._invalidFloatingPointValue(value, at: codingPath)
@@ -466,7 +466,7 @@ extension _XMLEncoder {
         }
     }
     
-    func box(_ value: Double) throws -> XMLContainer {
+    func box(_ value: Double) throws -> XMLEncodingContainer {
         if value.isInfinite || value.isNaN {
             guard case let .convertToString(positiveInfinity: posInfString, negativeInfinity: negInfString, nan: nanString) = self.options.nonConformingFloatEncodingStrategy else {
                 throw EncodingError._invalidFloatingPointValue(value, at: codingPath)
@@ -484,7 +484,7 @@ extension _XMLEncoder {
         }
     }
     
-    func box(_ value: Date) throws -> XMLContainer {
+    func box(_ value: Date) throws -> XMLEncodingContainer {
         switch self.options.dateEncodingStrategy {
         case .deferredToDate:
             try value.encode(to: self)
@@ -506,14 +506,14 @@ extension _XMLEncoder {
             try closure(value, self)
 
             guard self.storage.count > depth else {
-                return .dictionary(MutableXMLContainerDictionary())
+                return .dictionary(MutableDictionaryContainer())
             }
 
             return self.storage.popContainer()
         }
     }
     
-    func box(_ value: Data) throws -> XMLContainer {
+    func box(_ value: Data) throws -> XMLEncodingContainer {
         switch self.options.dataEncodingStrategy {
         case .deferredToData:
             try value.encode(to: self)
@@ -525,19 +525,19 @@ extension _XMLEncoder {
             try closure(value, self)
 
             guard self.storage.count > depth else {
-                return .dictionary(MutableXMLContainerDictionary())
+                return .dictionary(MutableDictionaryContainer())
             }
 
             return self.storage.popContainer()
         }
     }
     
-    func box<T : Encodable>(_ value: T) throws -> XMLContainer {
-        return try self.box_(value) ?? .dictionary(MutableXMLContainerDictionary())
+    func box<T : Encodable>(_ value: T) throws -> XMLEncodingContainer {
+        return try self.box_(value) ?? .dictionary(MutableDictionaryContainer())
     }
     
     // This method is called "box_" instead of "box" to disambiguate it from the overloads. Because the return type here is different from all of the "box" overloads (and is more general), any "box" calls in here would call back into "box" recursively instead of calling the appropriate overload, which is not what we want.
-    func box_<T : Encodable>(_ value: T) throws -> XMLContainer? {
+    func box_<T : Encodable>(_ value: T) throws -> XMLEncodingContainer? {
         if T.self == Date.self {
             return try self.box((value as! Date))
         } else if T.self == Data.self {

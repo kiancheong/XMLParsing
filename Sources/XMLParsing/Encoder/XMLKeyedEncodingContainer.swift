@@ -16,7 +16,7 @@ struct _XMLKeyedEncodingContainer<K : CodingKey> : KeyedEncodingContainerProtoco
     private let encoder: _XMLEncoder
     
     /// A reference to the container we're writing to.
-    private let container: MutableXMLContainerDictionary
+    private let container: MutableDictionaryContainer<XMLEncodingContainer>
     
     /// The path of coding keys taken to get to this point in encoding.
     private(set) public var codingPath: [CodingKey]
@@ -24,7 +24,7 @@ struct _XMLKeyedEncodingContainer<K : CodingKey> : KeyedEncodingContainerProtoco
     // MARK: - Initialization
     
     /// Initializes `self` with the given references.
-    init(referencing encoder: _XMLEncoder, codingPath: [CodingKey], wrapping container: MutableXMLContainerDictionary) {
+    init(referencing encoder: _XMLEncoder, codingPath: [CodingKey], wrapping container: MutableDictionaryContainer<XMLEncodingContainer>) {
         self.encoder = encoder
         self.codingPath = codingPath
         self.container = container
@@ -50,18 +50,18 @@ struct _XMLKeyedEncodingContainer<K : CodingKey> : KeyedEncodingContainerProtoco
         self.container[_converted(key).stringValue] = .null
     }
     
-    private mutating func _encode(attribute value: XMLContainer, forKey key: Key) {
+    private mutating func _encode(attribute value: XMLEncodingContainer, forKey key: Key) {
         switch self.container[_XMLElement.attributesKey] ?? .null {
         case .dictionary(let dictionary):
             dictionary[_converted(key).stringValue] = value
         default:
-            let dictionary = MutableXMLContainerDictionary()
+            let dictionary = MutableDictionaryContainer<XMLEncodingContainer>()
             dictionary[_converted(key).stringValue] = value
             self.container[_XMLElement.attributesKey] = .dictionary(dictionary)
         }
     }
     
-    private mutating func _encode(container: XMLContainer, forKey key: Key) {
+    private mutating func _encode(container: XMLEncodingContainer, forKey key: Key) {
         self.encoder.codingPath.append(key)
         defer { self.encoder.codingPath.removeLast() }
         
@@ -164,7 +164,7 @@ struct _XMLKeyedEncodingContainer<K : CodingKey> : KeyedEncodingContainerProtoco
     }
     
     public mutating func nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type, forKey key: Key) -> KeyedEncodingContainer<NestedKey> {
-        let dictionary = MutableXMLContainerDictionary()
+        let dictionary = MutableDictionaryContainer<XMLEncodingContainer>()
         self.container[_converted(key).stringValue] = .dictionary(dictionary)
         
         self.codingPath.append(key)
@@ -175,7 +175,7 @@ struct _XMLKeyedEncodingContainer<K : CodingKey> : KeyedEncodingContainerProtoco
     }
     
     public mutating func nestedUnkeyedContainer(forKey key: Key) -> UnkeyedEncodingContainer {
-        let array = MutableXMLContainerArray()
+        let array = MutableArrayContainer<XMLEncodingContainer>()
         self.container[_converted(key).stringValue] = .array(array)
         
         self.codingPath.append(key)

@@ -14,7 +14,7 @@ struct _XMLUnkeyedEncodingContainer : UnkeyedEncodingContainer {
     private let encoder: _XMLEncoder
     
     /// A reference to the container we're writing to.
-    private var container: MutableXMLContainerArray
+    private var container: MutableArrayContainer<XMLEncodingContainer>
     
     /// The path of coding keys taken to get to this point in encoding.
     private(set) public var codingPath: [CodingKey]
@@ -27,7 +27,7 @@ struct _XMLUnkeyedEncodingContainer : UnkeyedEncodingContainer {
     // MARK: - Initialization
     
     /// Initializes `self` with the given references.
-    init(referencing encoder: _XMLEncoder, codingPath: [CodingKey], wrapping container: MutableXMLContainerArray) {
+    init(referencing encoder: _XMLEncoder, codingPath: [CodingKey], wrapping container: MutableArrayContainer<XMLEncodingContainer>) {
         self.encoder = encoder
         self.codingPath = codingPath
         self.container = container
@@ -73,7 +73,7 @@ struct _XMLUnkeyedEncodingContainer : UnkeyedEncodingContainer {
         self.codingPath.append(_XMLKey(index: self.count))
         defer { self.codingPath.removeLast() }
         
-        let dictionary = MutableXMLContainerDictionary()
+        let dictionary = MutableDictionaryContainer<XMLEncodingContainer>()
         self.container.append(.dictionary(dictionary))
         
         let container = _XMLKeyedEncodingContainer<NestedKey>(referencing: self.encoder, codingPath: self.codingPath, wrapping: dictionary)
@@ -84,7 +84,7 @@ struct _XMLUnkeyedEncodingContainer : UnkeyedEncodingContainer {
         self.codingPath.append(_XMLKey(index: self.count))
         defer { self.codingPath.removeLast() }
         
-        let array = MutableXMLContainerArray()
+        let array = MutableArrayContainer<XMLEncodingContainer>()
         self.container.append(.array(array))
         return _XMLUnkeyedEncodingContainer(referencing: self.encoder, codingPath: self.codingPath, wrapping: array)
     }

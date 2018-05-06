@@ -18,10 +18,10 @@ internal class _XMLReferencingEncoder : _XMLEncoder {
     /// The type of container we're referencing.
     private enum Reference {
         /// Referencing a specific index in an array container.
-        case array(MutableXMLContainerArray, Int)
+        case array(MutableArrayContainer<XMLEncodingContainer>, Int)
         
         /// Referencing a specific key in a dictionary container.
-        case dictionary(MutableXMLContainerDictionary, String)
+        case dictionary(MutableDictionaryContainer<XMLEncodingContainer>, String)
     }
     
     // MARK: - Properties
@@ -35,7 +35,7 @@ internal class _XMLReferencingEncoder : _XMLEncoder {
     // MARK: - Initialization
     
     /// Initializes `self` by referencing the given array container in the given encoder.
-    internal init(referencing encoder: _XMLEncoder, at index: Int, wrapping array: MutableXMLContainerArray) {
+    internal init(referencing encoder: _XMLEncoder, at index: Int, wrapping array: MutableArrayContainer<XMLEncodingContainer>) {
         self.encoder = encoder
         self.reference = .array(array, index)
         super.init(options: encoder.options, codingPath: encoder.codingPath)
@@ -45,7 +45,7 @@ internal class _XMLReferencingEncoder : _XMLEncoder {
     
     /// Initializes `self` by referencing the given dictionary container in the given encoder.
     internal init(referencing encoder: _XMLEncoder,
-                     key: CodingKey, convertedKey: CodingKey, wrapping dictionary: MutableXMLContainerDictionary) {
+                     key: CodingKey, convertedKey: CodingKey, wrapping dictionary: MutableDictionaryContainer<XMLEncodingContainer>) {
         self.encoder = encoder
         self.reference = .dictionary(dictionary, convertedKey.stringValue)
         super.init(options: encoder.options, codingPath: encoder.codingPath)
@@ -66,9 +66,9 @@ internal class _XMLReferencingEncoder : _XMLEncoder {
     
     // Finalizes `self` by writing the contents of our storage to the referenced encoder's storage.
     deinit {
-        let value: XMLContainer
+        let value: XMLEncodingContainer
         switch self.storage.count {
-        case 0: value = .dictionary(MutableXMLContainerDictionary())
+        case 0: value = .dictionary(MutableDictionaryContainer<XMLEncodingContainer>())
         case 1: value = self.storage.popContainer()
         default: fatalError("Referencing encoder deallocated with multiple containers on stack.")
         }

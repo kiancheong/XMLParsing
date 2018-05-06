@@ -19,7 +19,7 @@ internal struct _XMLKeyedDecodingContainer<K : CodingKey> : KeyedDecodingContain
     private let decoder: _XMLDecoder
     
     /// A reference to the container we're reading from.
-    private let container: [String : Any]
+    private let container: MutableDictionaryContainer<XMLDecodingContainer>
     
     /// The path of coding keys taken to get to this point in decoding.
     private(set) public var codingPath: [CodingKey]
@@ -27,7 +27,7 @@ internal struct _XMLKeyedDecodingContainer<K : CodingKey> : KeyedDecodingContain
     // MARK: - Initialization
     
     /// Initializes `self` by referencing the given decoder and container.
-    internal init(referencing decoder: _XMLDecoder, wrapping container: [String : Any]) {
+    internal init(referencing decoder: _XMLDecoder, wrapping container: MutableDictionaryContainer<XMLDecodingContainer>) {
         self.decoder = decoder
         self.container = container
         self.codingPath = decoder.codingPath
@@ -36,7 +36,7 @@ internal struct _XMLKeyedDecodingContainer<K : CodingKey> : KeyedDecodingContain
     // MARK: - KeyedDecodingContainerProtocol Methods
     
     public var allKeys: [Key] {
-        return self.container.keys.flatMap { Key(stringValue: $0) }
+        return self.container.values.keys.compactMap { Key(stringValue: $0) }
     }
     
     public func contains(_ key: Key) -> Bool {
@@ -45,7 +45,11 @@ internal struct _XMLKeyedDecodingContainer<K : CodingKey> : KeyedDecodingContain
     
     public func decodeNil(forKey key: Key) throws -> Bool {
         if let entry = self.container[key.stringValue] {
-            return entry is NSNull
+            if case .null = entry {
+                return true
+            } else {
+                return false
+            }
         } else {
             return true
         }
@@ -286,7 +290,7 @@ internal struct _XMLKeyedDecodingContainer<K : CodingKey> : KeyedDecodingContain
                                                                   debugDescription: "Cannot get \(KeyedDecodingContainer<NestedKey>.self) -- no value found for key \"\(key.stringValue)\""))
         }
         
-        guard let dictionary = value as? [String : Any] else {
+        guard case .dictionary(let dictionary) = value else {
             throw DecodingError._typeMismatch(at: self.codingPath, expectation: [String : Any].self, reality: value)
         }
         
@@ -304,7 +308,7 @@ internal struct _XMLKeyedDecodingContainer<K : CodingKey> : KeyedDecodingContain
                                                                   debugDescription: "Cannot get UnkeyedDecodingContainer -- no value found for key \"\(key.stringValue)\""))
         }
         
-        guard let array = value as? [Any] else {
+        guard case .array(let array) = value else {
             throw DecodingError._typeMismatch(at: self.codingPath, expectation: [Any].self, reality: value)
         }
         
@@ -315,7 +319,7 @@ internal struct _XMLKeyedDecodingContainer<K : CodingKey> : KeyedDecodingContain
         self.decoder.codingPath.append(key)
         defer { self.decoder.codingPath.removeLast() }
         
-        let value: Any = self.container[key.stringValue] ?? NSNull()
+        let value = self.container[key.stringValue] ?? .null
         return _XMLDecoder(referencing: value, at: self.decoder.codingPath, options: self.decoder.options)
     }
     

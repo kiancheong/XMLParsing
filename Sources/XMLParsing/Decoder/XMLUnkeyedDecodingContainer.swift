@@ -15,7 +15,7 @@ internal struct _XMLUnkeyedDecodingContainer : UnkeyedDecodingContainer {
     private let decoder: _XMLDecoder
     
     /// A reference to the container we're reading from.
-    private let container: [Any]
+    private let container: MutableArrayContainer<XMLDecodingContainer>
     
     /// The path of coding keys taken to get to this point in decoding.
     private(set) public var codingPath: [CodingKey]
@@ -26,7 +26,7 @@ internal struct _XMLUnkeyedDecodingContainer : UnkeyedDecodingContainer {
     // MARK: - Initialization
     
     /// Initializes `self` by referencing the given decoder and container.
-    internal init(referencing decoder: _XMLDecoder, wrapping container: [Any]) {
+    internal init(referencing decoder: _XMLDecoder, wrapping container: MutableArrayContainer<XMLDecodingContainer>) {
         self.decoder = decoder
         self.container = container
         self.codingPath = decoder.codingPath
@@ -48,7 +48,7 @@ internal struct _XMLUnkeyedDecodingContainer : UnkeyedDecodingContainer {
             throw DecodingError.valueNotFound(Any?.self, DecodingError.Context(codingPath: self.decoder.codingPath + [_XMLKey(index: self.currentIndex)], debugDescription: "Unkeyed container is at end."))
         }
         
-        if self.container[self.currentIndex] is NSNull {
+        if case .null = self.container[self.currentIndex] {
             self.currentIndex += 1
             return true
         } else {
@@ -306,20 +306,20 @@ internal struct _XMLUnkeyedDecodingContainer : UnkeyedDecodingContainer {
                                                                     debugDescription: "Cannot get nested keyed container -- unkeyed container is at end."))
         }
         
-        let value = self.container[self.currentIndex]
-        guard !(value is NSNull) else {
+        switch self.container[self.currentIndex] {
+        case .null:
             throw DecodingError.valueNotFound(KeyedDecodingContainer<NestedKey>.self,
                                               DecodingError.Context(codingPath: self.codingPath,
                                                                     debugDescription: "Cannot get keyed decoding container -- found null value instead."))
+        case .dictionary(let dictionary):
+            self.currentIndex += 1
+            let container = _XMLKeyedDecodingContainer<NestedKey>(referencing: self.decoder, wrapping: dictionary)
+            return KeyedDecodingContainer(container)
+        default:
+            throw DecodingError._typeMismatch(at: self.codingPath,
+                                              expectation: MutableDictionaryContainer<XMLDecodingContainer>.self,
+                                              reality: self.container[self.currentIndex])
         }
-        
-        guard let dictionary = value as? [String : Any] else {
-            throw DecodingError._typeMismatch(at: self.codingPath, expectation: [String : Any].self, reality: value)
-        }
-        
-        self.currentIndex += 1
-        let container = _XMLKeyedDecodingContainer<NestedKey>(referencing: self.decoder, wrapping: dictionary)
-        return KeyedDecodingContainer(container)
     }
     
     public mutating func nestedUnkeyedContainer() throws -> UnkeyedDecodingContainer {
@@ -329,22 +329,20 @@ internal struct _XMLUnkeyedDecodingContainer : UnkeyedDecodingContainer {
         guard !self.isAtEnd else {
             throw DecodingError.valueNotFound(UnkeyedDecodingContainer.self,
                                               DecodingError.Context(codingPath: self.codingPath,
-                                                                    debugDescription: "Cannot get nested keyed container -- unkeyed container is at end."))
+                                                                    debugDescription: "Cannot get nested unkeyed container -- unkeyed container is at end."))
         }
         
-        let value = self.container[self.currentIndex]
-        guard !(value is NSNull) else {
+        switch self.container[self.currentIndex] {
+        case .null:
             throw DecodingError.valueNotFound(UnkeyedDecodingContainer.self,
                                               DecodingError.Context(codingPath: self.codingPath,
-                                                                    debugDescription: "Cannot get keyed decoding container -- found null value instead."))
+                                                                    debugDescription: "Cannot get unkeyed decoding container -- found null value instead."))
+        case .array(let array):
+            self.currentIndex += 1
+            return _XMLUnkeyedDecodingContainer(referencing: self.decoder, wrapping: array)
+        default:
+            throw DecodingError._typeMismatch(at: self.codingPath, expectation: [Any].self, reality: self.container[self.currentIndex])
         }
-        
-        guard let array = value as? [Any] else {
-            throw DecodingError._typeMismatch(at: self.codingPath, expectation: [Any].self, reality: value)
-        }
-        
-        self.currentIndex += 1
-        return _XMLUnkeyedDecodingContainer(referencing: self.decoder, wrapping: array)
     }
     
     public mutating func superDecoder() throws -> Decoder {

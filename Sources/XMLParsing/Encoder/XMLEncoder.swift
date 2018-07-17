@@ -257,7 +257,7 @@ open class XMLEncoder {
             throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: [], debugDescription: "Unable to encode the given top-level value to XML."))
         }
         
-        return element.toXMLString(with: header, withCDATA: stringEncodingStrategy != .deferredToString).data(using: .utf8, allowLossyConversion: true)!
+        return element.toXMLString(with: header, withCDATA: stringEncodingStrategy != .deferredToString, outputFormatting: outputFormatting).data(using: .utf8, allowLossyConversion: true)!
     }
 }
 

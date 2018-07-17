@@ -209,16 +209,19 @@ internal class _XMLElement {
         return .dictionary(node)
     }
     
-    func toXMLString(with header: XMLHeader? = nil, withCDATA cdata: Bool, ignoreEscaping: Bool = false) -> String {
+    func toXMLString(with header: XMLHeader? = nil, withCDATA cdata: Bool, ignoreEscaping: Bool = false, outputFormatting: XMLEncoder.OutputFormatting = []) -> String {
         if let header = header, let headerXML = header.toXML() {
-            return headerXML + _toXMLString(withCDATA: cdata)
+            return headerXML + _toXMLString(withCDATA: cdata, ignoreEscaping: ignoreEscaping, outputFormatting: outputFormatting)
         } else {
-            return _toXMLString(withCDATA: cdata)
+            return _toXMLString(withCDATA: cdata, ignoreEscaping: ignoreEscaping, outputFormatting: outputFormatting)
         }
     }
     
-    fileprivate func _toXMLString(indented level: Int = 0, withCDATA cdata: Bool, ignoreEscaping: Bool = false) -> String {
-        var string = String(repeating: " ", count: level * 4)
+    fileprivate func _toXMLString(indented level: Int = 0, withCDATA cdata: Bool, ignoreEscaping: Bool = false, outputFormatting: XMLEncoder.OutputFormatting = []) -> String {
+        var string = ""
+        if outputFormatting.contains(.prettyPrinted) {
+            string += String(repeating: " ", count: level * 4)
+        }
         string += "<\(key)"
         
         for (key, value) in attributes {
@@ -234,16 +237,30 @@ internal class _XMLElement {
             }
             string += "</\(key)>"
         } else if !children.isEmpty {
-            string += ">\n"
-            
-            for childElement in children {
-                for child in childElement.value {
-                    string += child._toXMLString(indented: level + 1, withCDATA: cdata)
-                    string += "\n"
-                }
+            string += ">"
+            if outputFormatting.contains(.prettyPrinted) {
+                string += "\n"
+            }
+
+            let childElements: [[_XMLElement]]
+            if #available(OSX 10.13, iOS 11.0, watchOS 4.0, tvOS 9.0, *), outputFormatting.contains(.sortedKeys) {
+                childElements = children.sorted { $0.key < $1.key } .map { $0.value }
+            } else {
+                childElements = Array(children.values)
             }
             
-            string += String(repeating: " ", count: level * 4)
+            for childElement in childElements {
+                for child in childElement {
+                    string += child._toXMLString(indented: level + 1, withCDATA: cdata, ignoreEscaping: ignoreEscaping, outputFormatting: outputFormatting)
+                    if outputFormatting.contains(.prettyPrinted) {
+                        string += "\n"
+                    }
+                }
+            }
+
+            if outputFormatting.contains(.prettyPrinted) {
+                string += String(repeating: " ", count: level * 4)
+            }
             string += "</\(key)>"
         } else {
             string += " />"

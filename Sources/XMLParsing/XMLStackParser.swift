@@ -242,13 +242,8 @@ internal class _XMLElement {
                 string += "\n"
             }
 
-            let childElements: [[_XMLElement]]
-            if #available(OSX 10.13, iOS 11.0, watchOS 4.0, tvOS 9.0, *), outputFormatting.contains(.sortedKeys) {
-                childElements = children.sorted { $0.key < $1.key } .map { $0.value }
-            } else {
-                childElements = Array(children.values)
-            }
-            
+            let childElements = children.sorted { $0.key < $1.key } .map { $0.value }
+
             for childElement in childElements {
                 for child in childElement {
                     string += child._toXMLString(indented: level + 1, withCDATA: cdata, ignoreEscaping: ignoreEscaping, outputFormatting: outputFormatting)

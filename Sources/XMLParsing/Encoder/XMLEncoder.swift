@@ -29,8 +29,7 @@ open class XMLEncoder {
         public static let prettyPrinted = OutputFormatting(rawValue: 1 << 0)
         
         /// Produce XML with dictionary keys sorted in lexicographic order.
-        @available(OSX 10.13, iOS 11.0, watchOS 4.0, tvOS 11.0, *)
-        public static let sortedKeys    = OutputFormatting(rawValue: 1 << 1)
+        public static let sortedKeys = OutputFormatting(rawValue: 1 << 1)
     }
     
     /// The strategy to use for encoding `Date` values.

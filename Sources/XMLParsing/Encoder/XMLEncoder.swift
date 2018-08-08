@@ -29,8 +29,7 @@ open class XMLEncoder {
         public static let prettyPrinted = OutputFormatting(rawValue: 1 << 0)
         
         /// Produce XML with dictionary keys sorted in lexicographic order.
-        @available(OSX 10.13, iOS 11.0, watchOS 4.0, tvOS 11.0, *)
-        public static let sortedKeys    = OutputFormatting(rawValue: 1 << 1)
+        public static let sortedKeys = OutputFormatting(rawValue: 1 << 1)
     }
     
     /// The strategy to use for encoding `Date` values.
@@ -257,7 +256,7 @@ open class XMLEncoder {
             throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: [], debugDescription: "Unable to encode the given top-level value to XML."))
         }
         
-        return element.toXMLString(with: header, withCDATA: stringEncodingStrategy != .deferredToString).data(using: .utf8, allowLossyConversion: true)!
+        return element.toXMLString(with: header, withCDATA: stringEncodingStrategy != .deferredToString, outputFormatting: outputFormatting).data(using: .utf8, allowLossyConversion: true)!
     }
 }
 
